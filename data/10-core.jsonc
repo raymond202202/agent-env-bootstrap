@@ -1,0 +1,205 @@
+{
+  // agent-env-bootstrap 依赖需求表 — 核心运行时与版本控制
+  // profiles: minimal(Agent 生存底线) / web(前端&MCP) / data(数据处理) / dev(编译构建)
+  "profiles": {
+    "minimal": "Agent 生存底线：Python + git + 包管理器",
+    "web": "前端与 MCP server：minimal + Node.js 生态",
+    "data": "数据处理：minimal + 科学计算包",
+    "dev": "编译构建：minimal + 工具链"
+  },
+
+  "deps": [
+    // ---- runtime ----
+    {
+      "id": "python", "category": "runtime", "summary": "Python 3.10+（Agent 脚本事实标准）",
+      "profiles": ["minimal"],
+      "check": {
+        "windows": ["py -3 --version", "python --version", "python3 --version"],
+        "macos": ["python3 --version"],
+        "linux": ["python3 --version"],
+        "freebsd": ["python3 --version"]
+      },
+      "min_version": "3.10",
+      "install": {
+        "windows": "winget install Python.Python.3.12 --accept-package-agreements --accept-source-agreements",
+        "macos": "brew install python@3.12",
+        "linux": "# Debian/Ubuntu: sudo apt install python3 python3-pip  # Fedora: sudo dnf install python3-pip",
+        "freebsd": "sudo pkg install python312 py312-pip"
+      },
+      "note": "Windows 装完新开终端才生效（PATH 刷新）；不要用 sudo npm 式的全局权限安装",
+      "danger": false
+    },
+    {
+      "id": "pip", "category": "runtime", "summary": "Python 包管理器",
+      "profiles": ["minimal"],
+      "check": {
+        "windows": ["py -3 -m pip --version", "python -m pip --version"],
+        "macos": ["python3 -m pip --version"],
+        "linux": ["python3 -m pip --version", "pip3 --version"],
+        "freebsd": ["python3 -m pip --version"]
+      },
+      "install": {
+        "windows": "随 Python 官方安装包附带；缺了用 py -3 -m ensurepip",
+        "macos": "python3 -m ensurepip --user 或 brew install python（自带）",
+        "linux": "# Debian/Ubuntu: sudo apt install python3-pip",
+        "freebsd": "sudo pkg install py312-pip"
+      },
+      "note": "优先 python -m pip 而不是裸 pip（避免环境混乱）"
+    },
+    {
+      "id": "node", "category": "runtime", "summary": "Node.js 18+（npm/npx，MCP server 依赖）",
+      "profiles": ["web"],
+      "check": {
+        "any": ["node --version", "nodejs --version"]
+      },
+      "min_version": "18",
+      "install": {
+        "windows": "winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements",
+        "macos": "brew install node@22",
+        "linux": "# 用 nvm 最稳: curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash && nvm install 22  # 或发行版包管理器",
+        "freebsd": "sudo pkg install node22"
+      },
+      "note": "npx 依赖 node；MCP server（npx 启动）在 Windows 需 node ≥18"
+    },
+    {
+      "id": "git", "category": "vcs", "summary": "git（版本控制 + 代码类任务）",
+      "profiles": ["minimal"],
+      "check": { "any": ["git --version"] },
+      "min_version": "2.30",
+      "install": {
+        "windows": "winget install Git.Git --accept-package-agreements --accept-source-agreements",
+        "macos": "xcode-select --install（Command Line Tools 含 git）或 brew install git",
+        "linux": "# Debian/Ubuntu: sudo apt install git  # Fedora: sudo dnf install git",
+        "freebsd": "sudo pkg install git"
+      },
+      "note": "Windows 装 Git 附带 Git Bash——它是 Agent 执行 POSIX 命令的救命稻草，装比不装强"
+    },
+
+    // ---- 包管理器 ----
+    {
+      "id": "pkgmgr", "category": "pkg", "summary": "系统级包管理器",
+      "profiles": ["minimal"],
+      "check": {
+        "windows": ["winget --version"],
+        "macos": ["brew --version"],
+        "linux": ["apt --version", "dnf --version", "pacman --version", "zypper --version"],
+        "freebsd": ["pkg --version"]
+      },
+      "install": {
+        "windows": "Windows 10 1809+ 自带 winget；缺失见 https://aka.ms/getwinget",
+        "macos": "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"",
+        "linux": "# 发行版自带：apt/dnf/pacman/zypper，按发行版确认",
+        "freebsd": "基本系统自带 pkg，首次用 sudo pkg update"
+      },
+      "note": "包管理器是一切补齐动作的前提，它 missing 时先装它"
+    },
+    {
+      "id": "scoop", "platforms": ["windows"], "category": "pkg", "summary": "scoop（Windows 用户态包管理器，免管理员）",
+      "profiles": ["minimal"],
+      "check": { "windows": ["scoop --version"] },
+      "install": {
+        "windows": "PowerShell: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force; iwr -useb get.scoop.sh | iex"
+      },
+      "note": "winget 之外的补充：用户态、免管理员、版本管理干净。二选一即可，两者都有更好",
+      "danger": false
+    },
+
+    // ---- Windows POSIX 工具链（历史实证：Agent 训练记忆全是 POSIX 命令）----
+    {
+      "id": "posix-tools", "category": "posix", "summary": "POSIX 基础工具（grep/sed/awk/head/tail/wc/unzip）",
+      "profiles": ["minimal"],
+      "check": {
+        "windows": ["grep --version"],
+        "macos": ["echo posix-ok"],
+        "linux": ["echo posix-ok"],
+        "freebsd": ["echo posix-ok"]
+      },
+      "install": {
+        "windows": "# 最优解：装 Git for Windows（自带 Git Bash 全套 POSIX 工具）；或 scoop install grep sed gawk busybox"
+      },
+      "note": "非 Windows 平台默认满足。Windows 上 Agent 凭训练记忆写 grep/sed，裸 cmd 全部失败——这是裸机第一周最高频的挫败来源",
+      "hint": "与 ferry（跨平台命令防错）配合使用：ferry 防写法错，本条确保命令存在"
+    },
+    {
+      "id": "curl", "category": "posix", "summary": "curl（网络请求）",
+      "profiles": ["minimal"],
+      "check": { "any": ["curl --version"] },
+      "install": {
+        "windows": "winget install cURL.cURL 或随 Git for Windows 附带",
+        "macos": "系统自带；如缺 xcode-select --install",
+        "linux": "# Debian/Ubuntu: sudo apt install curl",
+        "freebsd": "sudo pkg install curl"
+      }
+    },
+    {
+      "id": "tar-zip", "category": "posix", "summary": "压缩解压（tar/unzip）",
+      "profiles": ["minimal"],
+      "check": {
+        "windows": ["tar --version", "unzip -v"],
+        "macos": ["tar --version"],
+        "linux": ["tar --version", "unzip -v"],
+        "freebsd": ["tar --version", "unzip -v"]
+      },
+      "install": {
+        "windows": "Win10 1809+ 自带 bsdtar；unzip 用 scoop install unzip",
+        "linux": "# Debian/Ubuntu: sudo apt install unzip tar",
+        "freebsd": "sudo pkg install unzip"
+      },
+      "note": "历史会话 unzip 使用 51 次；Windows 缺 unzip 是高频坑"
+    },
+
+    // ---- shell 环境 ----
+    {
+      "id": "pwsh-policy", "platforms": ["windows"], "category": "shell", "summary": "PowerShell 执行策略允许本地脚本",
+      "profiles": ["minimal"],
+      "check": {
+        "windows": ["powershell -NoProfile -Command \"if ((Get-ExecutionPolicy -Scope CurrentUser) -in @('RemoteSigned','Unrestricted','Bypass')) { exit 0 } else { exit 1 }\""]
+      },
+      "install": {
+        "windows": "Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force"
+      },
+      "note": "默认 Restricted 会拦截所有 .ps1，Agent 生成的安装脚本跑不了",
+      "danger": false
+    },
+    {
+      "id": "wsl", "platforms": ["windows"], "category": "shell", "summary": "WSL2（可选：完整 Linux 环境）",
+      "profiles": ["dev"],
+      "check": { "windows": ["wsl --status"] },
+      "install": {
+        "windows": "wsl --install（需管理员 + 重启）"
+      },
+      "note": "重依赖（占内存、需重启），只在用户明确要 Linux 环境时装",
+      "danger": true
+    },
+
+    // ---- data/dev 画像 ----
+    {
+      "id": "py-data", "category": "data", "summary": "Python 数据科学包（pandas/numpy/openpyxl）",
+      "profiles": ["data"],
+      "check": {
+        "any": ["python -c \"import pandas, numpy, openpyxl\" 2>/dev/null || py -3 -c \"import pandas, numpy, openpyxl\" 2>/dev/null"]
+      },
+      "install": {
+        "any": "python -m pip install pandas numpy openpyxl -q（或 py -3 -m pip ...）"
+      },
+      "note": "历史会话 pip install pandas/openpyxl 高频出现（38 次 pip 动作）"
+    },
+    {
+      "id": "build-tools", "category": "dev", "summary": "编译工具链（make/gcc 或 MSVC）",
+      "profiles": ["dev"],
+      "check": {
+        "windows": ["cl 2>nul", "gcc --version", "mingw32-make --version"],
+        "macos": ["make --version", "cc --version"],
+        "linux": ["make --version", "gcc --version"],
+        "freebsd": ["make --version", "cc --version"]
+      },
+      "install": {
+        "windows": "winget install BrechtSanders.WinLibs.POSIX.UCRT 或 scoop install gcc make（vscode 用户可装 msys2）",
+        "macos": "xcode-select --install",
+        "linux": "# Debian/Ubuntu: sudo apt install build-essential",
+        "freebsd": "sudo pkg install gcc gmake"
+      },
+      "note": "只有编译原生模块/跑 make 时需要；一般 Agent 任务用不到"
+    }
+  ]
+}

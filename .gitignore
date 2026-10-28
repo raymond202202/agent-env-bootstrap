@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.venv/
+dist/
+build/
+*.egg-info/
+
+# 打包产物（源码在 env-bootstrap/）
+*.zip
